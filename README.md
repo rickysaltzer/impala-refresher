@@ -38,6 +38,6 @@ it doesn't require any special libraries on the host as far as I know. I've test
 
 Building:
 
-    $ go build impala-refresher.go
+    $ go build
     $ ls
     impala-refresher.go impala-refresher
