@@ -11,9 +11,11 @@ How To Use
 ----------
 
 Usage:
+
     $ ./impala-refresher <table_name> <list_of_nodes>
 
 Example:
+
     $ ./impala-refresher mytable node-01 node-02 node-03 node-04 node-05 node-06
     Refreshing node-01's metadata...
     Refreshing node-02's metadata...
@@ -35,6 +37,7 @@ The only requirement is [go](http://golang.org/), The build time is basically in
 it doesn't require any special libraries on the host as far as I know. I've tested on systems as old as CentOS 5.6.
 
 Building:
+
     $ go build impala-refresher.go
     $ ls
     impala-refresher.go impala-refresher
