@@ -44,6 +44,8 @@ it doesn't require any special libraries on the host as far as I know. I've test
 
 Building:
 
+    $ git clone git://github.com/rickysaltzer/impala-refresher.git
+    $ cd impala-refresher
     $ go build
     $ ls
     impala-refresher.go impala-refresher
