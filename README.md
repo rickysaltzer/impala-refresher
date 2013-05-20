@@ -10,13 +10,19 @@ every node in the cluster.
 How To Use
 ----------
 
+An error will be displayed if your node timesout or fails to refresh (non 0 exit code). If any of your nodes fail
+to refresh, the exit code of impala-refresher will be 1. 
+
 Usage:
 
-    $ ./impala-refresher <table_name> <list_of_nodes>
+    Usage of ./impala-refresher:
+      -nodes="":    Comma separated list of impala daemons to refresh
+      -table="":    Table to refresh
+      -timeout=60:  Refresh timeout in seconds
 
 Example:
 
-    $ ./impala-refresher mytable node-01 node-02 node-03 node-04 node-05 node-06
+    $ ./impala-refresher --table mytable --nodes node-01,node-02,node-03,node-04,node-05,node-06
     Refreshing node-01's metadata...
     Refreshing node-02's metadata...
     Refreshing node-03's metadata...

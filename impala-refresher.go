@@ -17,6 +17,7 @@ import (
 	"os/exec"
 	"strings"
 	"errors"
+	"flag"
 )
 
 type ImpalaNode struct {
@@ -37,7 +38,7 @@ type ImpalaNode struct {
 	Uses the exec library to open impala-shell in order
 	to manually refresh an Impala table.
 */
-func ExecuteRefresh(node *ImpalaNode, tableName string, finishRefresh chan<- *ImpalaNode) {
+func ExecuteRefresh(node *ImpalaNode, tableName string, timeout int, finishRefresh chan<- *ImpalaNode) {
 	// Construct the refresh command using the impala-shell
 	refreshCommand := exec.Command("impala-shell", "-i", node.hostName,
 		"-q", "refresh " + tableName + "; DESCRIBE " + tableName)
@@ -58,7 +59,8 @@ func ExecuteRefresh(node *ImpalaNode, tableName string, finishRefresh chan<- *Im
 
 	// Wait for the refresh to finish, timeout after 1 minute.
 	select {
-		case err := <-refreshFinished:					// Blocking
+		// Waits for refresh command to finish
+		case err := <-refreshFinished:
 			node.totalRefreshTime = (time.Now().Sub(startTime))
 			// Check for any errors (exit 1+)
 			if (err != nil) {
@@ -70,7 +72,8 @@ func ExecuteRefresh(node *ImpalaNode, tableName string, finishRefresh chan<- *Im
 			}
 			finishRefresh <- node
 
-		case <-time.After(time.Second * 60):			// Will return after 60 seconds
+		// Timeout channel
+		case <-time.After(time.Second * time.Duration(timeout)):
 			// Kill the process
 			refreshCommand.Process.Kill()
 			fmt.Println("Node " + node.hostName + " timed out!")
@@ -83,12 +86,12 @@ func ExecuteRefresh(node *ImpalaNode, tableName string, finishRefresh chan<- *Im
 	Refresh all of the supplied Impala daemon's metadata
 	concurrently. If all nodes refreshed, return true
 */
-func RefreshNodes(nodes []*ImpalaNode, tableName string) bool {
+func RefreshNodes(nodes []*ImpalaNode, tableName string, timeout int) bool {
 	finishRefresh := make(chan *ImpalaNode)
 	allNodesRefreshed := true
 	for _, node := range nodes {
 		fmt.Println("Refreshing " + node.hostName + "'s metadata...")
-		go ExecuteRefresh(node, tableName, finishRefresh)
+		go ExecuteRefresh(node, tableName, timeout, finishRefresh)
 	}
 
 	for i := 0; i < len(nodes); i++ {
@@ -105,14 +108,6 @@ func RefreshNodes(nodes []*ImpalaNode, tableName string) bool {
   return allNodesRefreshed
 }
 
-func printHelp() {
-	fmt.Println("Impala Table Metadata Refresher\n")
-	fmt.Println("Usage:")
-	fmt.Println("\timpala-refresher <table_name> <list of nodes>")
-	fmt.Println("Example:")
-	fmt.Println("\timpala-refresher mytable node-01 node-02 node-03 ..")
-}
-
 /*
 	Checks if this system has the Impala Shell
 */
@@ -125,14 +120,15 @@ func HasImpalaShell() bool {
 	Main Function
 */ 
 func main() {
-	// Help Checks
-	if (!(len(os.Args) > 2)) {
-		printHelp()
-		os.Exit(1)
-	}
+	// Argument parsing
+	timeout := flag.Int("timeout", 60, "Refresh timeout in seconds")
+	tableName := flag.String("table", "","Table to refresh")
+	nodeList := flag.String("nodes", "","Comma separated list of impala daemons to refresh")
+	flag.Parse()
 
-	if (os.Args[1] == "help" || os.Args[1] == "--help") {
-		printHelp()
+	// Check to make sure required arguments were supplied
+	if (*tableName == "" || *nodeList == "") {
+		flag.Usage()
 		os.Exit(1)
 	}
 
@@ -142,14 +138,14 @@ func main() {
 		os.Exit(1)
 	}
 
-
 	var nodes []*ImpalaNode
-	tableName := os.Args[1]
 
-	for _, nodeArg := range os.Args[2:] {
-		nodes = append(nodes, &ImpalaNode{nodeArg, false, nil, time.Duration(0)})
+	for _, nodeArg := range strings.Split(*nodeList, ",") {
+		nodes = append(nodes, &ImpalaNode{strings.Trim(nodeArg, " "), false, nil, time.Duration(0)})
 	}
-	allNodesRefreshed := RefreshNodes(nodes, tableName)
+	allNodesRefreshed := RefreshNodes(nodes, *tableName, *timeout)
+
+	// If all nodes refreshed successfully, exit ok
 	if (allNodesRefreshed) {
 		os.Exit(0)
 	} else {
