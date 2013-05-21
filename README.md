@@ -16,6 +16,7 @@ to refresh, the exit code of impala-refresher will be 1.
 Usage:
 
     Usage of ./impala-refresher:
+      -concurrency=0: Max number of refreshes to perform concurrently (0: unlimited)
       -nodes="":    Comma separated list of impala daemons to refresh
       -table="":    Table to refresh
       -timeout=60:  Refresh timeout in seconds
@@ -35,6 +36,24 @@ Example:
     node-03 refreshed successfully! Took: 26.753072643s
     node-01 refreshed successfully! Took: 27.024496418s
     node-02 refreshed successfully! Took: 27.654374677s
+
+With concurrency set to *3*
+
+    $ ./impala-refresher --table mytable --nodes node-01,node-02,node-03,node-04,node-05,node-06 --concurrency 3
+    Refreshing node-01's metadata...
+    Refreshing node-02's metadata...
+    Refreshing node-03's metadata...
+    node-02 refreshed successfully! Took: 19.313201ms
+    node-01 refreshed successfully! Took: 19.564682ms
+    node-03 refreshed successfully! Took: 20.187352ms
+    Refreshing node-04's metadata...
+    Refreshing node-05's metadata...
+    Refreshing node-06's metadata...
+    node-04 refreshed successfully! Took: 22.933899ms
+    node-05 refreshed successfully! Took: 40.255635ms
+    node-06 refreshed successfully! Took: 45.224793ms
+
+
 
 How To Build
 ------------

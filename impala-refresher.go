@@ -91,26 +91,38 @@ func ExecuteRefresh(node *ImpalaNode, tableName string, timeout int, finishRefre
 	Refresh all of the supplied Impala daemon's metadata
 	concurrently. If all nodes refreshed, return true
 */
-func RefreshNodes(nodes []*ImpalaNode, tableName string, timeout int) bool {
+func RefreshNodes(nodes []*ImpalaNode, tableName string, timeout int, concurrency int) bool {
+	inFlight := 0
 	finishRefresh := make(chan *ImpalaNode)
 	allNodesRefreshed := true
-	for _, node := range nodes {
+
+	for index, node := range nodes {
+		// Execute a node refresh, and increment inFlight refreshes by 1
 		fmt.Println("Refreshing " + node.hostName + "'s metadata...")
 		go ExecuteRefresh(node, tableName, timeout, finishRefresh)
-	}
+		inFlight++
 
-	for i := 0; i < len(nodes); i++ {
-		node := <-finishRefresh
-		if (!node.refreshed) {
-			fmt.Println(node.hostName + " failed to refresh!")
-			allNodesRefreshed = false
-		} else {
-			fmt.Println(node.hostName + " refreshed successfully! Took: " +
-				node.totalRefreshTime.String())
+		// Wait for in flight nodes to finish if:
+		// Number of in flight nodes is equal to the concurrency value
+		// or
+		// Number of in flight nodes is equal to the number of nodes to given to refresh
+		if (inFlight == concurrency || index == len(nodes) - 1) {
+			for i := 0; i < inFlight; i++ {
+				node := <-finishRefresh
+				if (!node.refreshed) {
+					fmt.Println(node.hostName + " failed to refresh!")
+					allNodesRefreshed = false
+				} else {
+					fmt.Println(node.hostName + " refreshed successfully! Took: " +
+						node.totalRefreshTime.String())
+				}
+			}
+			// Reset in flight nodes back to 0
+			inFlight = 0
 		}
 	}
 
-  return allNodesRefreshed
+	return allNodesRefreshed
 }
 
 /*
@@ -129,6 +141,7 @@ func main() {
 	timeout := flag.Int("timeout", 60, "Refresh timeout in seconds")
 	tableName := flag.String("table", "","Table to refresh")
 	nodeList := flag.String("nodes", "","Comma separated list of impala daemons to refresh")
+	concurrency := flag.Int("concurrency", 0, "Max number of refreshes to perform concurrently (0: unlimited)")
 	flag.Parse()
 
 	// Check to make sure required arguments were supplied
@@ -148,7 +161,7 @@ func main() {
 	for _, nodeArg := range strings.Split(*nodeList, ",") {
 		nodes = append(nodes, &ImpalaNode{strings.Trim(nodeArg, " "), false, nil, time.Duration(0)})
 	}
-	allNodesRefreshed := RefreshNodes(nodes, *tableName, *timeout)
+	allNodesRefreshed := RefreshNodes(nodes, *tableName, *timeout, *concurrency)
 
 	// If all nodes refreshed successfully, exit ok
 	if (allNodesRefreshed) {
