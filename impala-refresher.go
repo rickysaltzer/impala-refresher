@@ -88,6 +88,20 @@ func ExecuteRefresh(node *ImpalaNode, tableName string, timeout int, finishRefre
 }
 
 /*
+	Wait for a node to finish from the queue
+*/
+func WaitForNode(finishRefresh <-chan *ImpalaNode, allNodesRefreshed *bool) {
+	node := <-finishRefresh
+	if (!node.refreshed) {
+		fmt.Println(node.hostName + " failed to refresh!")
+		*allNodesRefreshed = false
+	} else {
+		fmt.Println(node.hostName + " refreshed successfully! Took: " +
+		node.totalRefreshTime.String())
+	}
+}
+
+/*
 	Refresh all of the supplied Impala daemon's metadata
 	concurrently. If all nodes refreshed, return true
 */
@@ -102,23 +116,18 @@ func RefreshNodes(nodes []*ImpalaNode, tableName string, timeout int, concurrenc
 		go ExecuteRefresh(node, tableName, timeout, finishRefresh)
 		inFlight++
 
-		// Wait for in flight nodes to finish if:
-		// Number of in flight nodes is equal to the concurrency value
-		// or
-		// Number of in flight nodes is equal to the number of nodes to given to refresh
+		// If we've reach the concurrency level, wait for a node to finish
+		// and decrement the inFlight nodes value. If we're all out of nodes
+		// to execute, wait for the rest of them to finish.
 		if (inFlight == concurrency || index == len(nodes) - 1) {
-			for i := 0; i < inFlight; i++ {
-				node := <-finishRefresh
-				if (!node.refreshed) {
-					fmt.Println(node.hostName + " failed to refresh!")
-					allNodesRefreshed = false
-				} else {
-					fmt.Println(node.hostName + " refreshed successfully! Took: " +
-						node.totalRefreshTime.String())
+			if (!(index == len(nodes) -1)) {
+				WaitForNode(finishRefresh, &allNodesRefreshed)
+			} else {
+				for i:= 0; i < inFlight; i++ {
+					WaitForNode(finishRefresh, &allNodesRefreshed)
 				}
 			}
-			// Reset in flight nodes back to 0
-			inFlight = 0
+			inFlight--
 		}
 	}
 
