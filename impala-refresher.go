@@ -52,7 +52,7 @@ func ExecuteRefresh(node *ImpalaNode, tableName string, timeout int, finishRefre
 	startTime := time.Now()
 	refreshFinished := make(chan error)
 	go func() {
-		output, err := refreshCommand.Output()
+		output, err := refreshCommand.CombinedOutput()
 
 		// Confirm that the table was successfully refreshed
 		if (!strings.Contains(string(output), "Successfully refreshed table") && err == nil) {
