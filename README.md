@@ -58,8 +58,8 @@ With concurrency set to *3*
 How To Build
 ------------
 
-The only requirement is [go](http://golang.org/), The build time is basically instant. The binary can be used anywhere,
-it doesn't require any special libraries on the host as far as I know. I've tested on systems as old as CentOS 5.6.
+The only requirement is [go](http://golang.org/), The build time is basically instant. If you compile on Linux, you can
+distribute the binary to other Linux machines. It doesn't require any special libraries on the host as far as I know. I've tested on systems as old as CentOS 5.6.
 
 Building:
 
