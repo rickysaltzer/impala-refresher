@@ -46,16 +46,16 @@ type ImpalaNode struct {
 func ExecuteRefresh(node *ImpalaNode, tableName string, timeout int, finishRefresh chan<- *ImpalaNode) {
 	// Construct the refresh command using the impala-shell
 	refreshCommand := exec.Command("impala-shell", "-i", node.hostName,
-		"-q", "refresh " + tableName + "; DESCRIBE " + tableName)
+		"-q", "refresh " + tableName);
 
 	// Execute a goroutine to block waiting for the command output
 	startTime := time.Now()
 	refreshFinished := make(chan error)
 	go func() {
-		output, err := refreshCommand.CombinedOutput()
+		_, err := refreshCommand.CombinedOutput()
 
 		// Confirm that the table was successfully refreshed
-		if (!strings.Contains(string(output), "Successfully refreshed table") && err == nil) {
+		if (err != nil) {
 			err = errors.New(node.hostName + "'s catalog did not refresh")
 		}
 
