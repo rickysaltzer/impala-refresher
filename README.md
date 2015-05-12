@@ -1,3 +1,6 @@
+THIS CODE IS DEPRECATED NOW THAT IMPALA AUTOMATICALLY PROPAGATES METADATA CHANGES WITH THE INTRODUCTION OF THE CATALOG SERVER
+==============================================================================================================================
+
 Impala Table Metadata Refresher
 ===============================
 
